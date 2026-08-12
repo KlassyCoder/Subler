@@ -34,10 +34,22 @@ public struct TheTVDB : MetadataService {
 
     // MARK: - TV Series name search
 
+    /// Searches by name, and if that comes back empty and the name carries a trailing
+    /// disambiguation year (e.g. "Masters of Sex (2013)"), retries without it. The as-is
+    /// name is always tried first so year-disambiguated titles (reboots/remakes, which TheTVDB
+    /// itself often names that way, e.g. "Battlestar Galactica (2004)") keep matching correctly.
+    private func fetchSeries(named name: String) -> [TVDBSeriesSearchResult] {
+        let results = session.fetch(series: name)
+        if results.isEmpty, let strippedName = name.strippingTrailingYear() {
+            return session.fetch(series: strippedName)
+        }
+        return results
+    }
+
     public func search(tvShow: String, language: String) -> [String] {
         var results: Set<String> = Set()
 
-        let series = session.fetch(series: tvShow)
+        let series = fetchSeries(named: tvShow)
         results.formUnion(series.compactMap { $0.translations?[language] } )
 
         if results.isEmpty {
@@ -66,7 +78,7 @@ public struct TheTVDB : MetadataService {
     }
 
     private func searchIDs(seriesName: String, language: String) -> [String] {
-        let series = session.fetch(series: seriesName)
+        let series = fetchSeries(named: seriesName)
         let sorted = series.sorted { el1, el2 -> Bool in
             return el1.name?.caseInsensitiveCompare(seriesName) == .orderedSame ? true : false
         }

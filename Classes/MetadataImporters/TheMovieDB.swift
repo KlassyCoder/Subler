@@ -86,10 +86,19 @@ public struct TheMovieDB: MetadataService {
 
     // MARK: - TV Series name search
 
+    /// See TheTVDB.fetchSeries(named:) - same as-is-first, strip-year-and-retry-on-empty fallback.
+    private func fetchSeries(named name: String, language: String) -> [TMDBTVSearchResult] {
+        let results = session.search(series: name, language: language)
+        if results.isEmpty, let strippedName = name.strippingTrailingYear() {
+            return session.search(series: strippedName, language: language)
+        }
+        return results
+    }
+
     public func search(tvShow: String, language: String) -> [String] {
         var results: Set<String> = Set()
 
-        let series = session.search(series: tvShow, language: language)
+        let series = fetchSeries(named: tvShow, language: language)
         results.formUnion(series.compactMap { $0.name } )
 
         if language != defaultLanguage {
@@ -212,7 +221,7 @@ public struct TheMovieDB: MetadataService {
     }
 
     private func searchIDs(seriesName: String, language: String) -> [Int] {
-        let series = session.search(series: seriesName, language: language)
+        let series = fetchSeries(named: seriesName, language: language)
         let filteredSeries = series.filter { match(series: $0, name: seriesName) }.map { $0.id }
 
         if filteredSeries.isEmpty == false {

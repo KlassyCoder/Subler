@@ -108,4 +108,17 @@ extension String {
     func trimmingWhitespacesAndNewlinews() -> String {
         return trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     }
+
+    /// Strips a trailing disambiguation year, e.g. "Masters of Sex (2013)" -> "Masters of Sex".
+    /// Returns nil when there is no such suffix to strip, so callers can use it as a fallback
+    /// search term rather than a blind replacement - some shows (reboots/remakes) legitimately
+    /// carry the year as part of their canonical name, so the as-is name should always be tried first.
+    func strippingTrailingYear() -> String? {
+        guard let regex = try? NSRegularExpression(pattern: #"\s*\((?:19|20)\d{2}\)\s*$"#) else { return nil }
+        let range = NSRange(startIndex..., in: self)
+        guard let match = regex.firstMatch(in: self, range: range),
+              let matchRange = Range(match.range, in: self) else { return nil }
+        let stripped = replacingCharacters(in: matchRange, with: "").trimmingWhitespacesAndNewlinews()
+        return stripped.isEmpty ? nil : stripped
+    }
 }

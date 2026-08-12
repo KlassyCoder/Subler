@@ -335,9 +335,11 @@ sub new {
 		}
 	}
 
-	# Cosmetics
+	# Cosmetics. Only strip a leading zero when another digit follows it,
+	# so an all-zero value (season/episode "00", i.e. specials) collapses
+	# to "0" instead of an empty string.
 	for my $key (qw(dvd season episode endep part)) {
-		$self->{$key} =~ s/^0+// if defined $self->{$key};
+		$self->{$key} =~ s/^0+(?=\d)// if defined $self->{$key};
 	}
 	$self->{endep} = undef if $self->{endep} == $self->{episode};
 
